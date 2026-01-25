@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#00A0B0">
+    <title>App Xylem Trabajos</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            overflow: hidden;
+        }
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: #00A0B0;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .hamburger {
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .header-title {
+            font-size: 1.3em;
+            text-align: center;
+            flex: 1;
+        }
+        .user-info {
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 998;
+        }
+        .overlay.active {
+            display: block;
+        }
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background-color: #00A0B0;
+            color: #ffffff;
+            padding: 80px 20px 20px;
+            transition: left 0.3s ease;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 999;
+            overflow-y: auto;
+        }
+        .drawer.open {
+            left: 0;
+        }
+        .drawer button {
+            background: none;
+            border: none;
+            color: #ffffff;
+            text-align: left;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 15px;
+            width: 100%;
+            border-radius: 5px;
+            transition: background 0.3s;
+            margin-bottom: 10px;
+        }
+        .drawer button:hover, .drawer button.active {
+            background-color: #00838f;
+        }
+        .drawer button.logout {
+            background-color: #ff4444;
+            margin-top: auto;
+        }
+        .main-content {
+            margin-top: 60px;
+            padding: 15px;
+            width: 100%;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            animation: fadeIn 0.4s ease-in;
+            transition: margin-left 0.3s ease;
+        }
+        .drawer.open ~ .main-content {
+            margin-left: 300px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .section-title {
+            text-align: center;
+            font-size: 1.6em;
+            margin-bottom: 15px;
+            color: #00A0B0;
+        }
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            background-color: #f9f9f9;
+            border-bottom: 2px solid #00A0B0;
+            margin-bottom: 15px;
+            scrollbar-width: none;
+            white-space: nowrap;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            padding: 12px 18px;
+            cursor: pointer;
+            background-color: #e0e0e0;
+            font-weight: bold;
+            min-width: 100px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .tab.active {
+            background-color: #00A0B0;
+            color: white;
+        }
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .card {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-3px); }
+        .card i {
+            font-size: 2em;
+            margin-bottom: 8px;
+            color: #00A0B0;
+        }
+        .card h4 {
+            margin: 0 0 8px 0;
+            color: #00A0B0;
+            font-size: 1em;
+        }
+        .big-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00A0B0;
+        }
+        .big-number.red { color: #ff4444; }
+        .big-number.green { color: #4CAF50; }
+        .chart-wrapper {
+            width: 140px;
+            height: 140px;
+            margin: 10px auto;
+        }
+        .obs-cards {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            animation: fadeIn 0.5s ease-in;
+        }
+        .obs-card {
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 6px solid #FF4444;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .obs-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .obs-card.resolved { border-left-color: #4CAF50; }
+        .obs-card.partial { border-left-color: #FFB300; }
+        .obs-card .sector-icon {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.6em;
+            opacity: 0.7;
+        }
+        .obs-card h3 {
+            margin: 0 0 10px 38px;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            font-size: 1.15em;
+        }
+        .obs-card p {
+            margin: 6px 0 6px 38px;
+            font-size: 0.95em;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        .obs-card .progress-container {
+            margin: 10px 38px 10px 38px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+        }
+        .obs-card .progress-bar {
+            height: 100%;
+            background-color: #00A0B0;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            line-height: 20px;
+            transition: width 0.4s ease;
+        }
+        .obs-card .badges {
+            margin-left: 38px;
+            margin-top: auto;
+        }
+        .badge {
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .badge-pendiente { background-color: #FF4444; color: white; }
+        .badge-resuelto { background-color: #4CAF50; color: white; }
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #00A0B0;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 997;
+            animation: pulse 2s infinite;
+            transition: transform 0.2s;
+        }
+        .fab:hover { transform: scale(1.1); }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0,160,176,0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0,160,176,0); }
+            100% { box-shadow: 0 0 0 0 rgba(0,160,176,0); }
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .toolbar select, .toolbar input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #00A0B0;
+            font-size: 1em;
+        }
+        .matrix-table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #00A0B0;
+            border-radius: 12px;
+            background-color: #ffffff;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .matrix-table th, .matrix-table td {
+            min-width: 120px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #00A0B0;
+            word-break: break-word;
+        }
+        .matrix-table th {
+            background-color: #00A0B0;
+            color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .fixed-column {
+            position: sticky;
+            left: 0;
+            background-color: #f9f9f9;
+            z-index: 1;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .matrix-table th.fixed-column {
+            background-color: #00A0B0;
+            color: #ffffff;
+            z-index: 3;
+        }
+        .cell-green { background-color: #4CAF50; color: white; }
+        .cell-orange { background-color: #FFB300; color: black; }
+        .cell-red { background-color: #ff4444; color: white; }
+        .cell-gray { background-color: #cccccc; color: black; cursor: pointer; }
+        .cell-critical-zero { background-color: #4CAF50; color: white; font-weight: bold; }
+        .cell-critical-positive { background-color: #ff4444; color: white; font-weight: bold; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: #f9f9f9;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .modal-content label {
+            font-size: 1em;
+            margin: 10px 0 5px;
+            display: block;
+        }
+        .modal-content select, .modal-content textarea, .modal-content input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #00A0B0;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .modal-content textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .close {
+            color: #00838f;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .voice-btn {
+            background-color: #00A0B0;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-top: 8px;
+            font-size: 1.1em;
+            align-self: flex-end;
+        }
+        .yes-no-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .yes-no-buttons button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            flex: 1;
+            transition: background 0.3s;
+        }
+        .yes-btn { background: #FF4444; color: white; }
+        .no-btn { background: #e0e0e0; color: #333; }
+        .yes-btn.active, .no-btn.active {
+            background: #00A0B0;
+            color: white;
+        }
+        .save-btn {
+            background: #00A0B0;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            width: 100%;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #00A0B0, #00838f);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 2000;
+        }
+        .login-screen h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .login-screen p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .login-screen input, .login-screen button {
+            width: 85%;
+            max-width: 420px;
+            padding: 16px;
+            margin: 12px 0;
+            font-size: 1.2em;
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .login-screen input {
+            background-color: white;
+            color: #333;
+        }
+        .login-screen button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .login-screen button:hover {
+            background-color: #388e3c;
+        }
+        .guest-btn {
+            background-color: #00838f;
+            margin-top: 20px;
+        }
+        .trabajador-cursos {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        }
+        .trabajador-curso-card {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .trabajador-curso-card:hover { transform: translateY(-3px); }
+        .trabajador-curso-card i {
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #00A0B0;
+        }
+        .trabajador-curso-card.cell-green { background-color: #4CAF50; color: white; }
+        .trabajador-curso-card.cell-orange { background-color: #FFB300; color: black; }
+        .trabajador-curso-card.cell-red { background-color: #ff4444; color: white; }
+        @media (max-width: 768px) {
+            .header {
+                height: 50px;
+                padding: 0 10px;
+            }
+            .header-title { 
+                font-size: 1.1em; 
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                padding: 0 40px;
+            }
+            .user-info { 
+                font-size: 0.75em; 
+                max-width: 120px; 
+            }
+            .hamburger { font-size: 26px; }
+            .main-content {
+                margin-top: 50px;
+                padding: 10px;
+            }
+            .chart-wrapper { width: 120px; height: 120px; }
+            .obs-cards { grid-template-columns: 1fr; }
+            .obs-card h3 { font-size: 1.1em; }
+            .modal-content {
+                margin: 10% auto;
+                padding: 15px;
+            }
+            .login-screen h1 { font-size: 2.2em; }
+            .section-title {
+                font-size: 1.4em;
+            }
+            .drawer.open ~ .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="login-screen" class="login-screen">
+        <h1><i class="fas fa-tools"></i> App Xylem Trabajos</h1>
+        <p>Ingrese su DNI para acceder</p>
+        <input type="text" id="dni-input" placeholder="Ingrese su DNI" maxlength="8">
+        <button onclick="login()">Ingresar</button>
+        <button class="guest-btn" onclick="loginAsGuest()">Entrar como Invitado</button>
+        <p id="login-error" style="color:#ff4444;margin-top:15px;"></p>
+    </div>
+
+    <div id="app" style="display:none;">
+        <div class="header">
+            <div class="hamburger" onclick="toggleDrawer()">☰</div>
+            <div class="header-title" id="section-title">Pendientes / Observaciones</div>
+            <div class="user-info" id="user-info"></div>
+        </div>
+
+        <div class="overlay" onclick="toggleDrawer()"></div>
+
+        <div class="drawer" id="drawer">
+            <button id="btn-pendientes" class="active" onclick="loadPendientes(); toggleDrawer()">Pendientes / Observaciones</button>
+            <button id="btn-cursos" onclick="loadCursosSection(); toggleDrawer()">Cursos de Seguridad</button>
+            <button class="logout" onclick="logout()">Cerrar Sesión</button>
+        </div>
+
+        <div class="main-content">
+            <h2 class="section-title" id="main-title">Pendientes / Observaciones</h2>
+            <div id="content"></div>
+        </div>
+
+        <div class="fab" id="fab" onclick="openNewObsModal()">+</div>
+    </div>
+
+    <!-- Modal Personal DNI -->
+    <div id="personal-dni-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('personal-dni-modal')">&times;</span>
+            <h3>Información del Personal</h3>
+            <p><strong>Nombre:</strong> <span id="modal-personal-nombre"></span></p>
+            <p><strong>DNI:</strong> <span id="modal-personal-dni"></span></p>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Observación -->
+    <div id="new-obs-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('new-obs-modal')">&times;</span>
+            <h3>Nueva Observación</h3>
+            <label>Sector (obligatorio):</label>
+            <select id="new-obs-sector">
+                <option value="">Seleccione sector</option>
+                <option value="pozos">Pozos</option>
+                <option value="pozas">Pozas</option>
+                <option value="pb1">PB1</option>
+                <option value="well_point">Well Point</option>
+            </select>
+            <label>Descripción:</label>
+            <div style="position:relative;">
+                <textarea id="new-obs-desc" rows="4" placeholder="Describe la observación..."></textarea>
+                <button class="voice-btn" id="voice-btn"><i class="fas fa-microphone"></i></button>
+            </div>
+            <label>% Avance inicial (0-100):</label>
+            <input type="number" id="new-obs-progress" min="0" max="100" value="0" onchange="checkResolvedComment()">
+            <label>¿Lo arreglaste ahora? (al 100%)</label>
+            <div class="yes-no-buttons">
+                <button id="yes-btn" class="yes-btn" onclick="setResolvedNow(true)">SÍ (100%)</button>
+                <button id="no-btn" class="no-btn active" onclick="setResolvedNow(false)">NO</button>
+            </div>
+            <div id="resolved-comment-div" style="display:none;">
+                <label>Comentario de resolución (obligatorio si 100%):</label>
+                <textarea id="resolved-comment" rows="4" placeholder="Describe cómo lo resolviste..."></textarea>
+            </div>
+            <button class="save-btn" onclick="saveNewObs()">Guardar</button>
+        </div>
+    </div>
+
+    <!-- Modal Detalle Observación -->
+    <div id="detail-obs-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('detail-obs-modal')">&times;</span>
+            <h3>Detalle Observación</h3>
+            <p><strong>Descripción:</strong> <span id="detail-desc"></span></p>
+            <p><strong>Sector:</strong> <span id="detail-sector"></span></p>
+            <p><strong>Reportado por:</strong> <span id="detail-reportado"></span></p>
+            <p><strong>Fecha:</strong> <span id="detail-fecha"></span></p>
+            <div class="progress-container">
+                <div class="progress-bar" id="detail-progress-bar">0%</div>
+            </div>
+            <p><strong>Avance actual:</strong> <span id="detail-progress">0%</span></p>
+            <div id="detail-resuelto-div" style="display:none;margin-top:20px;">
+                <p><strong>Estado:</strong> <span class="badge badge-resuelto">Resuelto</span></p>
+                <p><strong>Comentario de resolución:</strong> <span id="detail-comentario"></span></p>
+                <p><strong>Fecha resolución:</strong> <span id="detail-fecha-res"></span></p>
+            </div>
+            <div id="update-progress-div" style="margin-top:25px;">
+                <label>Nuevo % Avance (0-100):</label>
+                <input type="number" id="update-progress" min="0" max="100">
+                <label>Comentario de actualización (obligatorio):</label>
+                <textarea id="update-comment" rows="4"></textarea>
+                <button style="background:#00A0B0;color:white;padding:12px 30px;border:none;border-radius:8px;margin-top:15px;font-size:1.1em;width:100%;" onclick="updateProgress()">Actualizar Avance</button>
+            </div>
+            <div id="history-div" style="margin-top:25px;">
+                <h4>Historial de Avance</h4>
+                <div id="history-list"></div>
+            </div>
+            <div id="delete-div" style="margin-top:20px;display:none;">
+                <button style="background:#ff4444;color:white;padding:10px 20px;border:none;border-radius:8px;" onclick="deleteCurrentObs()">Eliminar Observación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cursos -->
+    <div id="add-curso-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('add-curso-modal')">&times;</span>
+            <h3 id="curso-modal-title">Añadir Curso</h3>
+            <label>DNI del personal (obligatorio):</label>
+            <select id="curso-dni">
+                <option value="">Seleccione DNI</option>
+            </select>
+            <label>Curso:</label>
+            <input type="text" id="curso-nombre">
+            <label>Fecha de Vencimiento:</label>
+            <input type="date" id="curso-venc">
+            <button id="save-curso" style="background:#00A0B0;color:white;padding:12px 30px;border:none;border-radius:8px;margin-top:20px;font-size:1.1em;width:100%;">Guardar</button>
+            <button id="delete-curso" style="display:none;background:#ff4444;color:white;margin-top:10px;padding:12px 30px;border:none;border-radius:8px;width:100%;">Eliminar</button>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAyhP0Ak3ziNrGTCFHKlFr7-_HAMimYX_g",
+            authDomain: "trabajos---xylem.firebaseapp.com",
+            projectId: "trabajos---xylem",
+            storageBucket: "trabajos---xylem.firebasestorage.app",
+            messagingSenderId: "719564556454",
+            appId: "1:719564556454:web:22e10612163f79d4b5cc67",
+            measurementId: "G-M4QXHB30W2"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const usuarios = [
+            { nombre: "TURPO CALLOHUANCA CESAR JHONY", dni: "40968321", rol: "supervisor" },
+            { nombre: "ASTULLE AZA WILLY ENRIQUE", dni: "41834020", rol: "supervisor" },
+            { nombre: "LIMASCA CHAHUAYO AMERICO", dni: "46146718", rol: "trabajador" },
+            { nombre: "HUAMANI QUIO OSCAR EMILIO", dni: "72156518", rol: "supervisor" },
+            { nombre: "PEREZ VARIAS WALTER SERGEY", dni: "29419804", rol: "trabajador" },
+            { nombre: "CONDORI HUANCA FREDY", dni: "29652867", rol: "trabajador" },
+            { nombre: "LLAIQUE QUISPE SAMUEL", dni: "76647913", rol: "trabajador" },
+            { nombre: "GOMEZ LACACTA JOSE LUIS", dni: "47673736", rol: "trabajador" },
+            { nombre: "QUSIPE YUCRA GILBER SILVESTRE", dni: "46759346", rol: "trabajador" },
+            { nombre: "QUINA BARRIGA CARLOS FERMANDO", dni: "29320149", rol: "trabajador" },
+            { nombre: "FUENTES FUENTES JOSE", dni: "04431627", rol: "trabajador" },
+            { nombre: "SUCASACA YUCRA JUAN NOE", dni: "47057969", rol: "trabajador" },
+            { nombre: "CCAHUANA HUAMANI MARCO ANTONIO", dni: "74752120", rol: "trabajador" },
+            { nombre: "QUISPE YUCRA JUAN CARLOS", dni: "78374316", rol: "trabajador" },
+            { nombre: "PAUCCARA HUAMANI HUGO", dni: "24893792", rol: "trabajador" },
+            { nombre: "HUAYTA MAMANI HUGO ELOY", dni: "29685210", rol: "trabajador" },
+            { nombre: "QUISPE APAZA JUAN CARLOS", dni: "71994478", rol: "trabajador" },
+            { nombre: "SUPHO TUNQUIPA EVER", dni: "44672755", rol: "trabajador" },
+            { nombre: "MERMA CRUZ MARCO ANTONIO", dni: "72271044", rol: "trabajador" },
+            { nombre: "PPACCO HUAMANI ALEX", dni: "74164942", rol: "trabajador" },
+            { nombre: "HUANCA CONDORI EVENISTER ADAN", dni: "04430425", rol: "trabajador" },
+            { nombre: "FLOREZ ARQUE WILLAM", dni: "44626323", rol: "supervisor" }
+        ];
+
+        let currentUser = null;
+        let currentSection = 'pendientes';
+        let currentSectorFilter = 'todos';
+        let currentCharts = [];
+        let recognition = null;
+        let currentObsId = null;
+        let editingCursoId = null;
+
+        const sectors = ['pozos', 'pozas', 'pb1', 'well_point'];
+        const sectorIcons = {
+            pozos: 'fa-tint',
+            pozas: 'fa-tint-slash',
+            pb1: 'fa-industry',
+            well_point: 'fa-water'
+        };
+
+        function destroyCharts() {
+            currentCharts.forEach(chart => chart && chart.destroy());
+            currentCharts = [];
+        }
+
+        function toggleDrawer() {
+            document.getElementById('drawer').classList.toggle('open');
+            document.querySelector('.overlay').classList.toggle('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+            if (recognition && recognition.stop) recognition.stop();
+        }
+
+        function showPersonalDni(nombre) {
+            const user = usuarios.find(u => u.nombre === nombre);
+            if (user) {
+                document.getElementById('modal-personal-nombre').textContent = user.nombre;
+                document.getElementById('modal-personal-dni').textContent = user.dni;
+                document.getElementById('personal-dni-modal').style.display = 'block';
+            }
+        }
+
+        function login() {
+            const dni = document.getElementById('dni-input').value.trim();
+            const errorEl = document.getElementById('login-error');
+            if (!dni) {
+                errorEl.textContent = 'Ingrese su DNI';
+                return;
+            }
+            const user = usuarios.find(u => u.dni === dni);
+            if (user) {
+                currentUser = { nombre: user.nombre, rol: user.rol };
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('login-screen').style.display = 'none';
+                updateHeader();
+                loadPendientes();
+            } else {
+                errorEl.textContent = 'DNI no registrado';
+            }
+        }
+
+        function loginAsGuest() {
+            currentUser = { nombre: 'Invitado', rol: 'supervisor' };
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('login-screen').style.display = 'none';
+            updateHeader();
+            loadPendientes();
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            location.reload();
+        }
+
+        function updateHeader() {
+            document.getElementById('user-info').textContent = `${currentUser.nombre} - ${new Date().toLocaleDateString('es-PE')}`;
+        }
+
+        function loadPendientes() {
+            currentSection = 'pendientes';
+            document.getElementById('main-title').textContent = 'Pendientes / Observaciones';
+            document.getElementById('btn-pendientes').classList.add('active');
+            document.getElementById('btn-cursos').classList.remove('active');
+            document.getElementById('fab').style.display = 'block';
+
+            let html = '<div class="tabs" id="obs-tabs"></div>';
+            if (currentUser.rol === 'supervisor') {
+                html += '<div class="toolbar" id="supervisor-toolbar"></div>';
+            }
+            html += '<div class="dashboard" id="obs-dashboard"></div>';
+            html += '<div class="obs-cards" id="obs-cards"></div>';
+
+            document.getElementById('content').innerHTML = html;
+
+            renderTabs();
+
+            if (currentUser.rol === 'supervisor') {
+                const toolbar = document.getElementById('supervisor-toolbar');
+                toolbar.innerHTML = `
+                    <select id="date-filter">
+                        <option value="todos">Todos</option>
+                        <option value="hoy">Hoy</option>
+                        <option value="semana">Última semana</option>
+                        <option value="rango">Rango personalizado</option>
+                    </select>
+                    <div id="range-div" style="display:none;gap:10px;">
+                        <input type="date" id="from-date">
+                        <input type="date" id="to-date">
+                    </div>
+                `;
+                document.getElementById('date-filter').onchange = handleDateFilterChange;
+            }
+
+            loadObservations();
+        }
+
+        function renderTabs() {
+            const tabs = document.getElementById('obs-tabs');
+            let tabHtml = sectors.map(s => 
+                `<div class="tab ${currentSectorFilter === s ? 'active' : ''}" onclick="setSectorFilter('${s}')">${s.charAt(0).toUpperCase() + s.slice(1).replace('_',' ')}</div>`
+            ).join('');
+            tabHtml += `<div class="tab ${currentSectorFilter === 'todos' ? 'active' : ''}" onclick="setSectorFilter('todos')">Todos</div>`;
+            tabs.innerHTML = tabHtml;
+        }
+
+        function setSectorFilter(filter) {
+            currentSectorFilter = filter;
+            renderTabs();
+            loadObservations();
+        }
+
+        function handleDateFilterChange() {
+            const val = document.getElementById('date-filter').value;
+            document.getElementById('range-div').style.display = val === 'rango' ? 'flex' : 'none';
+            loadObservations();
+        }
+
+        function loadObservations() {
+            destroyCharts();
+            db.collection('observaciones').onSnapshot(snapshot => {
+                let obs = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    data.fechaReporteDate = data.fechaReporte ? data.fechaReporte.toDate() : new Date();
+                    data.progress = data.progress || 0;
+                    data.history = data.history || [];
+                    obs.push(data);
+                });
+
+                let filtered = obs;
+
+                if (currentSectorFilter !== 'todos') {
+                    filtered = filtered.filter(o => o.sector === currentSectorFilter);
+                }
+
+                if (currentUser.rol === 'supervisor') {
+                    const filterVal = document.getElementById('date-filter')?.value || 'todos';
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    if (filterVal === 'hoy') {
+                        filtered = filtered.filter(o => {
+                            const d = new Date(o.fechaReporteDate);
+                            d.setHours(0,0,0,0);
+                            return d.getTime() === today.getTime();
+                        });
+                    } else if (filterVal === 'semana') {
+                        const weekAgo = new Date(today);
+                        weekAgo.setDate(today.getDate() - 7);
+                        filtered = filtered.filter(o => o.fechaReporteDate >= weekAgo);
+                    } else if (filterVal === 'rango') {
+                        const from = document.getElementById('from-date')?.valueAsDate;
+                        const to = document.getElementById('to-date')?.valueAsDate;
+                        if (from && to) {
+                            to.setHours(23,59,59,999);
+                            filtered = filtered.filter(o => o.fechaReporteDate >= from && o.fechaReporteDate <= to);
+                        }
+                    }
+                }
+
+                renderObsDashboard(filtered);
+                renderObsCards(filtered);
+            });
+        }
+
+        function relativeTime(date) {
+            if (!date) return 'Fecha desconocida';
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) return 'Hoy';
+            if (diffDays === 1) return 'Ayer';
+            return `Hace ${diffDays} días`;
+        }
+
+        function renderObsDashboard(data) {
+            const dashboard = document.getElementById('obs-dashboard');
+            let total = data.length;
+            let pendientes = data.filter(o => o.progress < 100).length;
+            let resueltos = data.filter(o => o.progress === 100).length;
+            let avgProgress = total > 0 ? Math.round(data.reduce((sum, o) => sum + o.progress, 0) / total) : 0;
+
+            let html = '';
+            if (currentUser.rol === 'trabajador') {
+                html = `
+                    <div class="card"><i class="fas fa-exclamation-triangle"></i><h4>Pendientes</h4><div class="big-number red">${pendientes}</div></div>
+                    <div class="card"><i class="fas fa-check-circle"></i><h4>Resueltos</h4><div class="big-number green">${resueltos}</div></div>
+                    <div class="card"><i class="fas fa-chart-pie"></i><h4>% Avance Promedio</h4><div class="big-number">${avgProgress}%</div><div class="chart-wrapper"><canvas id="chart-worker"></canvas></div></div>
+                `;
+            } else {
+                html = `
+                    <div class="card"><i class="fas fa-list"></i><h4>Total</h4><div class="big-number">${total}</div></div>
+                    <div class="card"><i class="fas fa-exclamation-triangle"></i><h4>Pendientes</h4><div class="big-number red">${pendientes}</div></div>
+                    <div class="card"><i class="fas fa-check-circle"></i><h4>Resueltos</h4><div class="big-number green">${resueltos}</div></div>
+                    <div class="card"><i class="fas fa-chart-pie"></i><h4>% Avance Promedio</h4><div class="big-number">${avgProgress}%</div><div class="chart-wrapper"><canvas id="chart-sup"></canvas></div></div>
+                `;
+            }
+            dashboard.innerHTML = html;
+
+            const chartId = currentUser.rol === 'trabajador' ? 'chart-worker' : 'chart-sup';
+            const chartCanvas = document.getElementById(chartId);
+            if (chartCanvas) {
+                const chart = new Chart(chartCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pendientes', 'Resueltos'],
+                        datasets: [{ data: [pendientes, resueltos], backgroundColor: ['#FF4444', '#4CAF50'], borderWidth: 2 }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+                currentCharts.push(chart);
+            }
+        }
+
+        function renderObsCards(data) {
+            data.sort((a,b) => b.fechaReporteDate - a.fechaReporteDate);
+            const container = document.getElementById('obs-cards');
+            let html = '';
+            data.forEach(o => {
+                const sector = o.sector || 'Sin sector';
+                const sectorDisplay = sector.charAt(0).toUpperCase() + sector.slice(1).replace('_',' ');
+                const iconClass = sectorIcons[o.sector] || 'fa-question';
+                const progress = o.progress || 0;
+                const cardClass = progress === 100 ? 'resolved' : progress > 0 ? 'partial' : '';
+                const barColor = progress === 100 ? '#4CAF50' : progress > 0 ? '#FFB300' : '#FF4444';
+                html += `
+                    <div class="obs-card ${cardClass}" onclick="openDetailObs('${o.id}')">
+                        <i class="fas ${iconClass} sector-icon"></i>
+                        <h3>${o.descripcion || 'Sin descripción'}</h3>
+                        <p><strong>Sector:</strong> ${sectorDisplay}</p>
+                        <p><strong>Reportado por:</strong> ${o.reportadoPor || 'Desconocido'}</p>
+                        <p><strong>Fecha:</strong> ${relativeTime(o.fechaReporteDate)}</p>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${progress}%; background-color: ${barColor};">${progress}%</div>
+                        </div>
+                        <div class="badges">
+                            <span class="badge ${progress === 100 ? 'badge-resuelto' : 'badge-pendiente'}">${progress === 100 ? 'Resuelto' : 'Pendiente'}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            if (data.length === 0) html = '<p style="text-align:center;grid-column:1/-1;font-size:1.2em;color:#666;margin-top:30px;">No hay observaciones.</p>';
+            container.innerHTML = html;
+        }
+
+        function openNewObsModal() {
+            document.getElementById('new-obs-sector').value = '';
+            document.getElementById('new-obs-desc').value = '';
+            document.getElementById('new-obs-progress').value = 0;
+            document.getElementById('resolved-comment-div').style.display = 'none';
+            document.getElementById('yes-btn').classList.remove('active');
+            document.getElementById('no-btn').classList.add('active');
+            document.getElementById('new-obs-modal').style.display = 'block';
+
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'es-PE';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                document.getElementById('voice-btn').onclick = () => recognition.start();
+
+                recognition.onresult = (event) => {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    document.getElementById('new-obs-desc').value += transcript + ' ';
+                };
+            } else {
+                document.getElementById('voice-btn').style.display = 'none';
+            }
+        }
+
+        function checkResolvedComment() {
+            const progress = parseInt(document.getElementById('new-obs-progress').value) || 0;
+            document.getElementById('resolved-comment-div').style.display = progress === 100 ? 'block' : 'none';
+            document.getElementById('yes-btn').classList.toggle('active', progress === 100);
+            document.getElementById('no-btn').classList.toggle('active', progress < 100);
+        }
+
+        function setResolvedNow(val) {
+            if (val) {
+                document.getElementById('new-obs-progress').value = 100;
+            }
+            checkResolvedComment();
+        }
+
+        function saveNewObs() {
+            const sector = document.getElementById('new-obs-sector').value;
+            const desc = document.getElementById('new-obs-desc').value.trim();
+            const progress = parseInt(document.getElementById('new-obs-progress').value) || 0;
+            if (!sector) return alert('Seleccione un sector');
+            if (!desc) return alert('Ingrese una descripción');
+            if (progress < 0 || progress > 100) return alert('% avance debe ser 0-100');
+
+            let comentario = '';
+            if (progress === 100) {
+                comentario = document.getElementById('resolved-comment').value.trim();
+                if (!comentario) return alert('Ingrese comentario cuando es 100%');
+            }
+
+            const historyEntry = {
+                user: currentUser.nombre,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                progress: progress,
+                comment: comentario || 'Creación inicial'
+            };
+
+            const data = {
+                sector,
+                descripcion: desc,
+                reportadoPor: currentUser.nombre,
+                fechaReporte: firebase.firestore.FieldValue.serverTimestamp(),
+                progress: progress,
+                resuelto: progress === 100,
+                comentarioResolucion: progress === 100 ? comentario : null,
+                fechaResolucion: progress === 100 ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                history: [historyEntry]
+            };
+
+            db.collection('observaciones').add(data)
+                .then(() => {
+                    closeModal('new-obs-modal');
+                    alert('Observación guardada correctamente');
+                })
+                .catch(err => {
+                    console.error('Error al guardar observación:', err);
+                    alert('Error al guardar: ' + err.message);
+                });
+        }
+
+        function openDetailObs(id) {
+            currentObsId = id;
+            db.collection('observaciones').doc(id).get().then(doc => {
+                if (!doc.exists) return alert('Observación no encontrada');
+                const o = doc.data();
+                o.fechaReporteDate = o.fechaReporte ? o.fechaReporte.toDate() : new Date();
+                o.progress = o.progress || 0;
+                o.history = o.history || [];
+                document.getElementById('detail-desc').textContent = o.descripcion || 'Sin descripción';
+                document.getElementById('detail-sector').textContent = o.sector ? o.sector.charAt(0).toUpperCase() + o.sector.slice(1).replace('_',' ') : 'Sin sector';
+                document.getElementById('detail-reportado').textContent = o.reportadoPor || 'Desconocido';
+                document.getElementById('detail-fecha').textContent = relativeTime(o.fechaReporteDate);
+                document.getElementById('detail-progress').textContent = `${o.progress}%`;
+                document.getElementById('detail-progress-bar').style.width = `${o.progress}%`;
+                document.getElementById('detail-progress-bar').textContent = `${o.progress}%`;
+                document.getElementById('detail-progress-bar').style.backgroundColor = o.progress === 100 ? '#4CAF50' : o.progress > 0 ? '#FFB300' : '#FF4444';
+
+                document.getElementById('update-progress').value = o.progress;
+
+                if (o.resuelto || o.progress === 100) {
+                    document.getElementById('detail-resuelto-div').style.display = 'block';
+                    document.getElementById('detail-comentario').textContent = o.comentarioResolucion || 'Sin comentario';
+                    document.getElementById('detail-fecha-res').textContent = o.fechaResolucion ? o.fechaResolucion.toDate().toLocaleDateString('es-PE') : 'N/A';
+                    document.getElementById('update-progress-div').style.display = 'none';
+                } else {
+                    document.getElementById('detail-resuelto-div').style.display = 'none';
+                    document.getElementById('update-progress-div').style.display = 'block';
+                }
+
+                // Historial
+                const historyList = document.getElementById('history-list');
+                historyList.innerHTML = '';
+                if (o.history.length === 0) {
+                    historyList.innerHTML = '<p>No hay historial de avances.</p>';
+                } else {
+                    o.history.sort((a,b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+                    o.history.forEach(entry => {
+                        const dateStr = entry.timestamp ? entry.timestamp.toDate().toLocaleString('es-PE') : 'Fecha desconocida';
+                        const p = document.createElement('p');
+                        p.innerHTML = `<strong>${entry.user || 'Desconocido'}</strong> - ${dateStr}<br>${entry.progress}% - ${entry.comment || 'Sin comentario'}`;
+                        historyList.appendChild(p);
+                    });
+                }
+
+                if (currentUser.rol === 'supervisor' && currentUser.nombre !== 'Invitado') {
+                    document.getElementById('delete-div').style.display = 'block';
+                } else {
+                    document.getElementById('delete-div').style.display = 'none';
+                }
+
+                document.getElementById('detail-obs-modal').style.display = 'block';
+            });
+        }
+
+        function updateProgress() {
+            const newProgress = parseInt(document.getElementById('update-progress').value);
+            const comment = document.getElementById('update-comment').value.trim();
+            if (isNaN(newProgress) || newProgress < 0 || newProgress > 100) return alert('% avance inválido');
+            if (!comment) return alert('Comentario obligatorio para actualización');
+
+            const historyEntry = {
+                user: currentUser.nombre,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                progress: newProgress,
+                comment: comment
+            };
+
+            const updates = {
+                progress: newProgress,
+                history: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+            };
+
+            if (newProgress === 100) {
+                updates.resuelto = true;
+                updates.comentarioResolucion = comment;
+                updates.fechaResolucion = firebase.firestore.FieldValue.serverTimestamp();
+            }
+
+            db.collection('observaciones').doc(currentObsId).update(updates)
+                .then(() => {
+                    alert('Avance actualizado');
+                    closeModal('detail-obs-modal');
+                })
+                .catch(err => {
+                    console.error('Error actualizando:', err);
+                    alert('Error al actualizar: ' + err.message);
+                });
+        }
+
+        function deleteCurrentObs() {
+            if (confirm('¿Eliminar esta observación permanentemente? Esta acción no se puede deshacer.')) {
+                db.collection('observaciones').doc(currentObsId).delete()
+                    .then(() => {
+                        alert('Observación eliminada');
+                        closeModal('detail-obs-modal');
+                    })
+                    .catch(err => {
+                        console.error('Error eliminando:', err);
+                        alert('Error al eliminar: ' + err.message);
+                    });
+            }
+        }
+
+        function loadCursosSection() {
+            currentSection = 'cursos';
+            document.getElementById('main-title').textContent = 'Cursos de Seguridad';
+            document.getElementById('btn-cursos').classList.add('active');
+            document.getElementById('btn-pendientes').classList.remove('active');
+            document.getElementById('fab').style.display = 'none';
+
+            if (currentUser.rol === 'trabajador') {
+                loadCursosTrabajador();
+            } else {
+                loadCursosSupervisor();
+            }
+        }
+
+        function loadCursosTrabajador() {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="dashboard" id="cursos-dashboard-trab"></div>
+                <div class="trabajador-cursos" id="cursos-list-trab"></div>
+            `;
+
+            const user = usuarios.find(u => u.nombre === currentUser.nombre);
+            if (!user) return;
+
+            db.collection('cursos').get().then(snapshot => {
+                const allCursos = [];
+                snapshot.forEach(doc => allCursos.push({id: doc.id, ...doc.data()}));
+
+                const cursos = allCursos.filter(c => 
+                    (c.dni && c.dni === user.dni) || 
+                    c.personal === currentUser.nombre
+                );
+
+                let vigentes = 0, porVencer = 0, vencidos = 0;
+                const today = new Date(); today.setHours(0,0,0,0);
+
+                cursos.forEach(c => {
+                    const venc = c.vencimiento ? c.vencimiento.toDate() : new Date();
+                    venc.setHours(0,0,0,0);
+                    const days = Math.ceil((venc - today) / (1000*60*60*24));
+                    if (days > 90) vigentes++;
+                    else if (days > 0) porVencer++;
+                    else vencidos++;
+                });
+
+                document.getElementById('cursos-dashboard-trab').innerHTML = `
+                    <div class="card"><i class="fas fa-check-circle"></i><h4>Vigentes</h4><div class="big-number green">${vigentes}</div></div>
+                    <div class="card"><i class="fas fa-clock"></i><h4>Por Vencer</h4><div class="big-number amber">${porVencer}</div></div>
+                    <div class="card"><i class="fas fa-exclamation-triangle"></i><h4>Vencidos</h4><div class="big-number red">${vencidos}</div></div>
+                    <div class="card"><i class="fas fa-chart-pie"></i><h4>Estado General</h4><div class="chart-wrapper"><canvas id="chart-trab-cursos"></canvas></div></div>
+                `;
+
+                const chart = new Chart(document.getElementById('chart-trab-cursos'), {
+                    type: 'doughnut',
+                    data: { labels: ['Vigentes', 'Por Vencer', 'Vencidos'], datasets: [{ data: [vigentes, porVencer, vencidos], backgroundColor: ['#4CAF50', '#FFB300', '#FF4444'] }] },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+                currentCharts.push(chart);
+
+                let listHtml = '';
+                cursos.forEach(c => {
+                    const venc = c.vencimiento ? c.vencimiento.toDate() : new Date();
+                    const days = Math.ceil((venc - today) / (1000*60*60*24));
+                    let daysText = days > 0 ? `${days} días` : days === 0 ? 'Vence hoy' : `Vencido hace ${-days} días`;
+                    const cardClass = days > 90 ? 'cell-green' : days > 0 ? 'cell-orange' : 'cell-red';
+                    listHtml += `
+                        <div class="trabajador-curso-card ${cardClass}">
+                            <i class="fas fa-certificate"></i>
+                            <h4>${c.curso || 'Curso sin nombre'}</h4>
+                            <p><strong>${daysText}</strong><br><small>${venc.toLocaleDateString('es-PE')}</small></p>
+                        </div>
+                    `;
+                });
+                if (cursos.length === 0) listHtml = '<p style="grid-column:1/-1;text-align:center;">No tienes cursos registrados.</p>';
+                document.getElementById('cursos-list-trab').innerHTML = listHtml;
+            });
+        }
+
+        function loadCursosSupervisor() {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <button class="add-observation" style="margin-bottom:20px;padding:12px 25px;font-size:1.1em;border-radius:8px;" onclick="openAddCursoModal()">Añadir Curso</button>
+                <div class="dashboard" id="cursos-dashboard"></div>
+                <div class="matrix-table-wrapper">
+                    <table class="matrix-table">
+                        <thead id="matrix-thead"></thead>
+                        <tbody id="matrix-tbody"></tbody>
+                    </table>
+                </div>
+            `;
+
+            db.collection('cursos').get().then(snapshot => {
+                const cursosData = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    cursosData.push(data);
+                });
+
+                const uniquePersons = usuarios.map(u => u.nombre).sort();
+
+                const matrix = {};
+                uniquePersons.forEach(p => { matrix[p] = {}; });
+
+                let vigentes = 0, porVencer = 0, vencidos = 0;
+                const personasCriticos = new Set();
+                const today = new Date(); today.setHours(0,0,0,0);
+
+                uniquePersons.forEach(p => {
+                    const user = usuarios.find(u => u.nombre === p);
+                    if (!user) return;
+
+                    const personCursos = cursosData.filter(c => 
+                        (c.dni && c.dni === user.dni) || 
+                        c.personal === p
+                    );
+
+                    personCursos.forEach(c => {
+                        const cursoName = c.curso || 'Sin nombre';
+                        if (!matrix[p][cursoName]) matrix[p][cursoName] = null;
+
+                        const venc = c.vencimiento ? c.vencimiento.toDate() : new Date();
+                        venc.setHours(0,0,0,0);
+                        const days = Math.ceil((venc - today) / (1000*60*60*24));
+
+                        matrix[p][cursoName] = {days, date: venc, id: c.id};
+
+                        if (days > 90) vigentes++;
+                        else if (days > 0 && days <= 90) { porVencer++; personasCriticos.add(p); }
+                        else { vencidos++; personasCriticos.add(p); }
+                    });
+                });
+
+                const uniqueCursos = [...new Set(cursosData.map(c => c.curso || 'Sin nombre'))].filter(c => c).sort();
+
+                document.getElementById('cursos-dashboard').innerHTML = `
+                    <div class="card"><i class="fas fa-users"></i><h4>Total Personal</h4><div class="big-number">${uniquePersons.length}</div></div>
+                    <div class="card"><i class="fas fa-certificate"></i><h4>Cursos Registrados</h4><div class="big-number">${cursosData.length}</div></div>
+                    <div class="card"><i class="fas fa-exclamation-triangle"></i><h4>Personas con Críticos</h4><div class="big-number ${personasCriticos.size > 0 ? 'red' : 'green'}">${personasCriticos.size}</div></div>
+                    <div class="card"><i class="fas fa-times-circle"></i><h4>Vencidos</h4><div class="big-number red">${vencidos}</div></div>
+                    <div class="card"><i class="fas fa-chart-pie"></i><h4>Distribución</h4><div class="chart-wrapper"><canvas id="chart-cursos-sup"></canvas></div></div>
+                `;
+
+                const chart = new Chart(document.getElementById('chart-cursos-sup'), {
+                    type: 'doughnut',
+                    data: { labels: ['Vigentes', 'Por Vencer', 'Vencidos'], datasets: [{ data: [vigentes, porVencer, vencidos], backgroundColor: ['#4CAF50', '#FFB300', '#FF4444'] }] },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+                currentCharts.push(chart);
+
+                const personCriticals = {};
+                uniquePersons.forEach(p => {
+                    let count = 0;
+                    Object.values(matrix[p]).forEach(cell => {
+                        if (cell && cell.days <= 90) count++;
+                    });
+                    personCriticals[p] = count;
+                });
+
+                uniquePersons.sort((a,b) => personCriticals[b] - personCriticals[a]);
+
+                const thead = document.getElementById('matrix-thead');
+                let header = '<tr><th class="fixed-column">Personal</th>';
+                uniqueCursos.forEach(c => header += `<th>${c}</th>`);
+                header += '<th>Críticos</th></tr>';
+                thead.innerHTML = header;
+
+                const tbody = document.getElementById('matrix-tbody');
+                tbody.innerHTML = '';
+                uniquePersons.forEach(p => {
+                    const tr = document.createElement('tr');
+                    const tdName = document.createElement('td');
+                    tdName.className = 'fixed-column';
+                    tdName.textContent = p;
+                    tdName.onclick = () => showPersonalDni(p);
+                    tr.appendChild(tdName);
+
+                    uniqueCursos.forEach(c => {
+                        const td = document.createElement('td');
+                        const cell = matrix[p][c];
+                        if (!cell) {
+                            td.textContent = 'NO REQUIERE';
+                            td.className = 'cell-gray';
+                            td.onclick = () => openAddCursoModal(p, c);
+                        } else {
+                            const daysText = cell.days > 0 ? `${cell.days} días` : cell.days === 0 ? 'Vence hoy' : `Vencido hace ${-cell.days} días`;
+                            td.innerHTML = `<strong>${daysText}</strong><br><small>${cell.date.toLocaleDateString('es-PE')}</small>`;
+                            td.className = cell.days > 90 ? 'cell-green' : cell.days > 0 ? 'cell-orange' : 'cell-red';
+                            td.onclick = () => openEditCurso(cell.id);
+                        }
+                        tr.appendChild(td);
+                    });
+
+                    const critTd = document.createElement('td');
+                    critTd.textContent = personCriticals[p];
+                    critTd.className = personCriticals[p] > 0 ? 'cell-critical-positive' : 'cell-critical-zero';
+                    tr.appendChild(critTd);
+
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        function openAddCursoModal(prePersonal = '', preCurso = '') {
+            editingCursoId = null;
+            document.getElementById('curso-modal-title').textContent = 'Añadir Curso';
+            document.getElementById('curso-nombre').value = preCurso;
+            document.getElementById('curso-venc').value = '';
+            document.getElementById('curso-dni').innerHTML = '<option value="">Seleccione DNI (obligatorio)</option>';
+            usuarios.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.dni;
+                opt.textContent = `${u.dni} - ${u.nombre}`;
+                document.getElementById('curso-dni').appendChild(opt);
+            });
+            document.getElementById('delete-curso').style.display = 'none';
+            document.getElementById('add-curso-modal').style.display = 'block';
+        }
+
+        function openEditCurso(id) {
+            editingCursoId = id;
+            document.getElementById('curso-modal-title').textContent = 'Editar Curso';
+            db.collection('cursos').doc(id).get().then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('curso-nombre').value = data.curso || '';
+                    document.getElementById('curso-venc').value = data.vencimiento ? data.vencimiento.toDate().toISOString().split('T')[0] : '';
+                    document.getElementById('curso-dni').innerHTML = '<option value="">Seleccione DNI</option>';
+                    usuarios.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.dni;
+                        opt.textContent = `${u.dni} - ${u.nombre}`;
+                        if (data.dni === u.dni) opt.selected = true;
+                        document.getElementById('curso-dni').appendChild(opt);
+                    });
+                    document.getElementById('delete-curso').style.display = 'block';
+                    document.getElementById('add-curso-modal').style.display = 'block';
+                }
+            });
+        }
+
+        document.getElementById('save-curso').onclick = () => {
+            const dni = document.getElementById('curso-dni').value;
+            const curso = document.getElementById('curso-nombre').value.trim();
+            const dateStr = document.getElementById('curso-venc').value;
+            if (!dni) return alert('Seleccione DNI del personal');
+            if (!curso || !dateStr) return alert('Complete curso y fecha');
+
+            const venc = firebase.firestore.Timestamp.fromDate(new Date(dateStr));
+            const data = { 
+                dni: dni,
+                curso: curso, 
+                vencimiento: venc
+            };
+
+            if (editingCursoId) {
+                db.collection('cursos').doc(editingCursoId).update(data).then(() => {
+                    alert('Curso actualizado');
+                    closeModal('add-curso-modal');
+                    loadCursosSection();
+                }).catch(err => {
+                    console.error(err);
+                    alert('Error al actualizar curso');
+                });
+            } else {
+                db.collection('cursos').add(data).then(() => {
+                    alert('Curso añadido');
+                    closeModal('add-curso-modal');
+                    loadCursosSection();
+                }).catch(err => {
+                    console.error(err);
+                    alert('Error al añadir curso');
+                });
+            }
+        };
+
+        document.getElementById('delete-curso').onclick = () => {
+            if (confirm('¿Eliminar este curso permanentemente?')) {
+                db.collection('cursos').doc(editingCursoId).delete().then(() => {
+                    alert('Curso eliminado');
+                    closeModal('add-curso-modal');
+                    loadCursosSection();
+                }).catch(err => {
+                    console.error(err);
+                    alert('Error al eliminar curso');
+                });
+            }
+        };
+
+        window.onload = () => {
+            const stored = localStorage.getItem('user');
+            if (stored) {
+                currentUser = JSON.parse(stored);
+                document.getElementById('app').style.display = 'block';
+                updateHeader();
+                loadPendientes();
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+            }
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js');
+            }
+        };
+    </script>
+</body>
+</html>
