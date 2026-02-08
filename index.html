@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#00A0B0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Control de Observaciones - Hidrogeología</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root{--primary:#00A0B0;--primary-dark:#007A87;--primary-light:#4DD0E1;--success:#2E7D32;--success-light:#4CAF50;--warning:#F57C00;--warning-light:#FFB300;--danger:#C62828;--danger-light:#EF5350;--info:#1565C0;--info-light:#42A5F5;--purple:#7B1FA2;--purple-light:#AB47BC;--text-dark:#1A1A2E;--text-medium:#4A4A5A;--text-light:#6B6B7B;--bg-white:#FFFFFF;--bg-light:#F5F7FA;--border-light:#E0E4E8;--shadow-sm:0 2px 8px rgba(0,0,0,0.08);--shadow-md:0 4px 16px rgba(0,0,0,0.12);--shadow-lg:0 8px 32px rgba(0,0,0,0.16);--radius-sm:12px;--radius-md:16px;--radius-lg:24px}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        html,body{height:100%;font-family:'Nunito',Arial,sans-serif;font-size:17px;background:var(--bg-light);color:var(--text-dark);overflow:hidden;line-height:1.5}
+        
+        .header{position:fixed;top:0;left:0;right:0;height:65px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 15px;box-shadow:var(--shadow-md);z-index:1000}
+        .hamburger{font-size:28px;cursor:pointer;padding:8px;border-radius:var(--radius-sm);width:44px;height:44px;display:flex;align-items:center;justify-content:center}.hamburger:active{background:rgba(255,255,255,0.2)}
+        .header-title{font-size:17px;font-weight:700;text-align:center;flex:1;padding:0 10px}
+        .user-info{font-size:14px;font-weight:600;background:rgba(255,255,255,0.15);padding:6px 12px;border-radius:50px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        
+        .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:998;backdrop-filter:blur(4px)}.overlay.active{display:block}
+        .drawer{position:fixed;top:0;left:-300px;width:280px;height:100%;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;padding:80px 15px 20px;transition:left .3s;box-shadow:var(--shadow-lg);z-index:999;overflow-y:auto}.drawer.open{left:0}
+        .drawer-header{text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.2)}
+        .drawer-header i{font-size:40px;margin-bottom:8px}
+        .drawer-header h3{font-size:16px;font-weight:600;opacity:0.9}
+        .drawer button{background:rgba(255,255,255,0.1);border:none;color:#fff;text-align:left;cursor:pointer;font-size:17px;font-weight:600;padding:14px 16px;width:100%;border-radius:var(--radius-md);margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:all .2s;position:relative}
+        .drawer button i{font-size:20px;width:26px;text-align:center}
+        .drawer button:active,.drawer button.active{background:rgba(255,255,255,0.25)}
+        .drawer button.logout{background:var(--danger);margin-top:20px}
+        .menu-badge{position:absolute;right:12px;background:#fff;color:var(--danger);font-size:12px;font-weight:800;padding:2px 8px;border-radius:50px;min-width:24px;text-align:center}
+        
+        .main-content{margin-top:65px;padding:15px;width:100%;height:calc(100vh - 65px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+        
+        .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:2000;padding:30px;text-align:center}
+        .login-logo{font-size:70px;margin-bottom:15px;text-shadow:0 4px 20px rgba(0,0,0,0.2)}
+        .login-title{font-size:22px;font-weight:800;margin-bottom:5px}
+        .login-subtitle{font-size:15px;font-weight:600;opacity:0.9;margin-bottom:8px;line-height:1.4}
+        .login-tagline{font-size:13px;opacity:0.8;margin-bottom:30px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+        .login-tagline span{background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:50px}
+        .login-screen input{width:100%;max-width:320px;padding:16px 20px;margin:8px 0;font-size:22px;font-weight:700;border-radius:var(--radius-lg);border:none;background:#fff;color:var(--text-dark);text-align:center;letter-spacing:3px}
+        .login-screen input::placeholder{letter-spacing:0;font-size:16px;color:var(--text-light)}
+        .login-screen button{width:100%;max-width:320px;padding:16px;margin:8px 0;font-size:17px;font-weight:700;border-radius:var(--radius-lg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+        .login-btn{background:var(--success);color:#fff}.login-btn:active{transform:scale(0.98)}
+        .guest-btn{background:rgba(255,255,255,0.2);color:#fff}
+        .login-error{color:#FFCDD2;font-size:15px;font-weight:600;margin-top:15px;min-height:25px}
+        
+        .dashboard-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+        .dash-card{background:var(--bg-white);padding:15px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm);text-align:center;cursor:pointer;transition:transform .2s,box-shadow .2s;border:2px solid transparent}
+        .dash-card:active{transform:scale(0.97)}
+        .dash-card.active{border-color:var(--primary);box-shadow:var(--shadow-md)}
+        .dash-card i{font-size:28px;margin-bottom:8px}
+        .dash-card .number{font-size:32px;font-weight:800;line-height:1}
+        .dash-card .label{font-size:12px;font-weight:700;color:var(--text-medium);margin-top:4px;text-transform:uppercase}
+        .dash-card.urgent{border-left:4px solid var(--danger)}.dash-card.urgent i,.dash-card.urgent .number{color:var(--danger)}
+        .dash-card.warning{border-left:4px solid var(--warning)}.dash-card.warning i,.dash-card.warning .number{color:var(--warning)}
+        .dash-card.success{border-left:4px solid var(--success)}.dash-card.success i,.dash-card.success .number{color:var(--success)}
+        .dash-card.info{border-left:4px solid var(--info)}.dash-card.info i,.dash-card.info .number{color:var(--info)}
+        .dash-card.primary{border-left:4px solid var(--primary)}.dash-card.primary i,.dash-card.primary .number{color:var(--primary)}
+        
+        .alert-banner{background:linear-gradient(135deg,var(--danger),var(--danger-light));color:#fff;padding:12px 15px;border-radius:var(--radius-md);margin-bottom:15px;display:flex;align-items:center;gap:12px;cursor:pointer;animation:pulse-bg 2s infinite}
+        @keyframes pulse-bg{0%,100%{opacity:1}50%{opacity:0.85}}
+        .alert-banner i{font-size:24px}
+        .alert-banner-content{flex:1}
+        .alert-banner-content strong{display:block;font-size:15px}
+        .alert-banner-content span{font-size:13px;opacity:0.9}
+        .alert-banner .arrow{font-size:20px}
+        
+        .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+        .chart-card{background:var(--bg-white);padding:15px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .chart-card h4{font-size:13px;font-weight:700;color:var(--text-medium);margin-bottom:10px;text-transform:uppercase}
+        .chart-card canvas{max-height:120px}
+        
+        .progress-section{background:var(--bg-white);padding:15px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm);margin-bottom:20px}
+        .progress-section h4{font-size:14px;font-weight:700;color:var(--text-medium);margin-bottom:10px}
+        .progress-bar-container{background:var(--bg-light);border-radius:10px;height:30px;overflow:hidden;border:2px solid var(--border-light)}
+        .progress-bar-fill{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;transition:width .5s}
+        .progress-stats{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--text-medium)}
+        
+        .tabs{display:flex;overflow-x:auto;background:var(--bg-white);border-radius:var(--radius-lg);padding:6px;margin-bottom:15px;box-shadow:var(--shadow-sm);gap:6px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+        .tab{padding:10px 16px;cursor:pointer;background:transparent;font-weight:700;font-size:14px;min-width:fit-content;text-align:center;border-radius:var(--radius-md);color:var(--text-medium);white-space:nowrap;transition:all .2s}
+        .tab.active{background:var(--primary);color:#fff}
+        
+        .filter-bar{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap}
+        .filter-bar select{padding:10px 14px;border-radius:var(--radius-md);border:2px solid var(--border-light);font-size:14px;font-weight:600;background:var(--bg-white);flex:1;min-width:120px}
+        .filter-bar select:focus{outline:none;border-color:var(--primary)}
+        
+        .search-container{position:relative;margin-bottom:15px}
+        .search-input{width:100%;padding:14px 16px 14px 48px;font-size:16px;border:2px solid var(--border-light);border-radius:var(--radius-lg);background:var(--bg-white);font-weight:600}
+        .search-input:focus{outline:none;border-color:var(--primary)}
+        .search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text-light)}
+        .search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text-light);cursor:pointer;display:none}.search-clear.show{display:block}
+        
+        .obs-list{display:flex;flex-direction:column;gap:12px}
+        .obs-card{background:var(--bg-white);padding:15px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm);cursor:pointer;position:relative;border-left:5px solid var(--danger);transition:transform .2s}
+        .obs-card:active{transform:scale(0.98)}
+        .obs-card.completed{border-left-color:var(--success);opacity:0.8}
+        .obs-card.in-progress{border-left-color:var(--warning)}
+        .obs-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+        .obs-card-type{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:700;text-transform:uppercase}
+        .type-acto{background:rgba(198,40,40,0.15);color:var(--danger)}
+        .type-condicion{background:rgba(21,101,192,0.15);color:var(--info)}
+        .type-comportamiento{background:rgba(123,31,162,0.15);color:var(--purple)}
+        .obs-card-priority{font-size:12px;font-weight:700;padding:4px 8px;border-radius:6px}
+        .priority-urgent{background:var(--danger);color:#fff}
+        .priority-high{background:var(--warning);color:#fff}
+        .priority-medium{background:var(--info);color:#fff}
+        .priority-low{background:var(--success);color:#fff}
+        .obs-card-title{font-size:15px;font-weight:700;color:var(--text-dark);margin-bottom:6px}
+        .obs-card-desc{font-size:14px;color:var(--text-medium);margin-bottom:8px;line-height:1.4}
+        .obs-card-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border-light);gap:10px}
+        .obs-card-user{font-size:12px;color:var(--text-light);display:flex;align-items:center;gap:5px}
+        .obs-card-date{font-size:12px;color:var(--text-light);font-weight:600}
+        .obs-card-zone{font-size:12px;background:var(--bg-light);padding:4px 8px;border-radius:6px;font-weight:600}
+        
+        .empty-state{text-align:center;padding:60px 20px;color:var(--text-light)}
+        .empty-state i{font-size:60px;margin-bottom:15px;opacity:0.5}
+        .empty-state p{font-size:16px;font-weight:600}
+        
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px)}
+        .modal-overlay.active{display:flex}
+        .modal{background:var(--bg-white);border-radius:var(--radius-lg);width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+        .modal-header{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:20px;display:flex;justify-content:space-between;align-items:center;border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+        .modal-header h3{font-size:18px;font-weight:700}
+        .modal-close{font-size:24px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.1)}
+        .modal-body{padding:20px}
+        .form-group{margin-bottom:15px}
+        .form-group label{display:block;font-size:13px;font-weight:700;color:var(--text-medium);margin-bottom:6px;text-transform:uppercase}
+        .form-group input,.form-group select,.form-group textarea{width:100%;padding:12px;border:2px solid var(--border-light);border-radius:var(--radius-md);font-size:15px;font-weight:600;font-family:inherit}
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary)}
+        .form-group textarea{resize:vertical;min-height:80px}
+        .form-actions{display:flex;gap:10px;margin-top:20px}
+        .btn{padding:14px 24px;border:none;border-radius:var(--radius-md);font-size:15px;font-weight:700;cursor:pointer;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .2s}
+        .btn:active{transform:scale(0.98)}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-secondary{background:var(--bg-light);color:var(--text-dark)}
+        
+        .fab{position:fixed;right:20px;bottom:20px;width:60px;height:60px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:50%;border:none;font-size:24px;cursor:pointer;box-shadow:var(--shadow-lg);z-index:900;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+        .fab:active{transform:scale(0.95)}
+        
+        .offline-banner{position:fixed;top:65px;left:0;right:0;background:var(--warning);color:#fff;padding:10px 15px;text-align:center;font-weight:700;font-size:14px;transform:translateY(-100%);transition:transform .3s;z-index:999}
+        .offline-banner.show{transform:translateY(0)}
+        
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--text-dark);color:#fff;padding:12px 20px;border-radius:var(--radius-lg);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);z-index:10000;opacity:0;transition:all .3s}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .toast.success{background:var(--success)}
+        .toast.warning{background:var(--warning)}
+        .toast.error{background:var(--danger)}
+        
+        .detail-section{background:var(--bg-light);padding:15px;border-radius:var(--radius-md);margin-bottom:15px}
+        .detail-section h4{font-size:12px;font-weight:700;color:var(--text-medium);margin-bottom:10px;text-transform:uppercase}
+        .detail-row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
+        .detail-row strong{color:var(--text-dark);font-weight:700}
+        .detail-row span{color:var(--text-medium)}
+        
+        .photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+        .photo-item{position:relative;padding-top:100%;border-radius:var(--radius-md);overflow:hidden;background:var(--bg-light)}
+        .photo-item img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+        .photo-upload{display:flex;align-items:center;justify-content:center;background:var(--bg-light);border:2px dashed var(--border-light);color:var(--text-light);font-size:32px;cursor:pointer;transition:all .2s}
+        .photo-upload:hover{border-color:var(--primary);color:var(--primary)}
+        
+        .course-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        .course-card{background:var(--bg-white);padding:15px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm);text-align:center;border-left:4px solid var(--success)}
+        .course-card.expiring{border-left-color:var(--warning)}
+        .course-card.expired{border-left-color:var(--danger);opacity:0.8}
+        .course-card h4{font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;justify-content:center}
+        .course-card .days{font-size:36px;font-weight:800;line-height:1;margin-bottom:4px}
+        .course-card .days.ok{color:var(--success)}
+        .course-card .days.warning{color:var(--warning)}
+        .course-card .days.danger{color:var(--danger)}
+        .course-card .legend{font-size:12px;color:var(--text-medium);font-weight:600}
+        
+        @media (max-width: 360px) {
+            .dashboard-grid{grid-template-columns:1fr}
+            .charts-row{grid-template-columns:1fr}
+            .course-grid{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+    <div id="login-screen" class="login-screen">
+        <div class="login-logo"><i class="fas fa-water"></i></div>
+        <h2 class="login-title">Hidrogeología App</h2>
+        <p class="login-subtitle">Control de Observaciones y Pendientes</p>
+        <div class="login-tagline">
+            <span><i class="fas fa-shield-alt"></i> Seguridad</span>
+            <span><i class="fas fa-chart-line"></i> Productividad</span>
+            <span><i class="fas fa-mobile-alt"></i> Offline</span>
+        </div>
+        <input type="text" id="dni-input" placeholder="Ingresa tu DNI" maxlength="8" inputmode="numeric">
+        <button class="login-btn" onclick="login()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+        <button class="guest-btn" onclick="guestLogin()"><i class="fas fa-user"></i> Modo Invitado</button>
+        <div class="login-error" id="login-error"></div>
+    </div>
+
+    <div id="app" style="display:none;">
+        <div class="header">
+            <div class="hamburger" onclick="toggleDrawer()"><i class="fas fa-bars"></i></div>
+            <div class="header-title" id="header-title">Hidrogeología</div>
+            <div class="user-info" id="user-info">Usuario</div>
+        </div>
+
+        <div class="overlay" id="overlay" onclick="toggleDrawer()"></div>
+        <div class="drawer" id="drawer">
+            <div class="drawer-header">
+                <i class="fas fa-user-circle"></i>
+                <h3 id="drawer-user-name">Usuario</h3>
+            </div>
+            <button onclick="showDashboard()" class="active"><i class="fas fa-home"></i> Dashboard</button>
+            <button onclick="showObservations()"><i class="fas fa-clipboard-list"></i> Observaciones <span class="menu-badge" id="menu-obs-badge">0</span></button>
+            <button onclick="showWorkers()"><i class="fas fa-users"></i> Trabajadores</button>
+            <button onclick="showMyCursos()"><i class="fas fa-graduation-cap"></i> Mis Cursos</button>
+            <button class="logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+        </div>
+
+        <div class="offline-banner" id="offline-banner"><i class="fas fa-wifi"></i> Sin conexión - Modo offline</div>
+
+        <div class="main-content" id="main-content"></div>
+
+        <button class="fab" onclick="newObservation()"><i class="fas fa-plus"></i></button>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal-content"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBVZ8L9x3K4YH_3mT9P2nQ7wR5sU6vX8yA",
+        authDomain: "hidrogeo-app.firebaseapp.com",
+        projectId: "hidrogeo-app",
+        storageBucket: "hidrogeo-app.appspot.com",
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:abcdef123456"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    let currentUser = null;
+    let observations = [];
+    let workers = [];
+    let cursos = [];
+    let allCursos = [];
+    
+    const predefinedUsers = [
+        { dni: '12345678', name: 'Juan Perez', role: 'Supervisor' },
+        { dni: '87654321', name: 'Maria Garcia', role: 'Operador' },
+        { dni: '11111111', name: 'Carlos Lopez', role: 'Gerente' }
+    ];
+    
+    function login() {
+        const dni = document.getElementById('dni-input').value.trim();
+        const errorEl = document.getElementById('login-error');
+        
+        if (!dni || dni.length !== 8) {
+            errorEl.textContent = 'Ingresa un DNI válido de 8 dígitos';
+            return;
+        }
+        
+        const user = predefinedUsers.find(u => u.dni === dni);
+        if (user) {
+            currentUser = user;
+            enterApp();
+        } else {
+            errorEl.textContent = 'DNI no registrado';
+        }
+    }
+    
+    function guestLogin() {
+        currentUser = { dni: 'guest', name: 'Invitado', role: 'Visitante' };
+        enterApp();
+    }
+    
+    function enterApp() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('user-info').textContent = currentUser.name.split(' ')[0];
+        document.getElementById('drawer-user-name').textContent = currentUser.name;
+        loadData();
+        showDashboard();
+    }
+    
+    function logout() {
+        currentUser = null;
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('dni-input').value = '';
+        document.getElementById('login-error').textContent = '';
+        toggleDrawer();
+    }
+    
+    function toggleDrawer() {
+        const drawer = document.getElementById('drawer');
+        const overlay = document.getElementById('overlay');
+        drawer.classList.toggle('open');
+        overlay.classList.toggle('active');
+    }
+    
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    function loadData() {
+        db.collection('observations').onSnapshot(snapshot => {
+            observations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateBadges();
+            if (document.getElementById('main-content').innerHTML.includes('obs-list')) {
+                renderObservations();
+            }
+        });
+        
+        db.collection('workers').onSnapshot(snapshot => {
+            workers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        });
+        
+        db.collection('cursos').onSnapshot(snapshot => {
+            allCursos = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    vencDate: data.vencimiento?.toDate() || new Date(data.vencimiento)
+                };
+            });
+        });
+    }
+    
+    function updateBadges() {
+        const pending = observations.filter(o => o.status !== 'completed').length;
+        document.getElementById('menu-obs-badge').textContent = pending;
+    }
+    
+    function showDashboard() {
+        toggleDrawer();
+        document.getElementById('header-title').textContent = 'Dashboard';
+        
+        const urgent = observations.filter(o => o.priority === 'urgent' && o.status !== 'completed').length;
+        const inProgress = observations.filter(o => o.status === 'in-progress').length;
+        const completed = observations.filter(o => o.status === 'completed').length;
+        const total = observations.length;
+        
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        let html = `
+            ${urgent > 0 ? `
+            <div class="alert-banner" onclick="showObservations('urgent')">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div class="alert-banner-content">
+                    <strong>${urgent} Observaciones Urgentes</strong>
+                    <span>Requieren atención inmediata</span>
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            ` : ''}
+            
+            <div class="dashboard-grid">
+                <div class="dash-card urgent" onclick="showObservations('urgent')">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div class="number">${urgent}</div>
+                    <div class="label">Urgentes</div>
+                </div>
+                <div class="dash-card warning" onclick="showObservations('in-progress')">
+                    <i class="fas fa-spinner"></i>
+                    <div class="number">${inProgress}</div>
+                    <div class="label">En Proceso</div>
+                </div>
+                <div class="dash-card success" onclick="showObservations('completed')">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="number">${completed}</div>
+                    <div class="label">Completadas</div>
+                </div>
+                <div class="dash-card primary" onclick="showObservations()">
+                    <i class="fas fa-clipboard-list"></i>
+                    <div class="number">${total}</div>
+                    <div class="label">Total</div>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <h4>Tasa de Cumplimiento</h4>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width:${completionRate}%;background:linear-gradient(90deg,var(--success),var(--success-light))">${completionRate}%</div>
+                </div>
+                <div class="progress-stats">
+                    <span><strong>${completed}</strong> Completadas</span>
+                    <span><strong>${total - completed}</strong> Pendientes</span>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('main-content').innerHTML = html;
+    }
+    
+    function showObservations(filter = 'all') {
+        toggleDrawer();
+        document.getElementById('header-title').textContent = 'Observaciones';
+        
+        let filtered = observations;
+        if (filter === 'urgent') filtered = observations.filter(o => o.priority === 'urgent' && o.status !== 'completed');
+        else if (filter === 'in-progress') filtered = observations.filter(o => o.status === 'in-progress');
+        else if (filter === 'completed') filtered = observations.filter(o => o.status === 'completed');
+        
+        renderObservations(filtered);
+    }
+    
+    function renderObservations(data = observations) {
+        const main = document.getElementById('main-content');
+        
+        let html = `
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Buscar observaciones..." onkeyup="searchObservations(this.value)">
+            </div>
+            
+            <div class="filter-bar">
+                <select onchange="filterObservations('status', this.value)">
+                    <option value="all">Todos los estados</option>
+                    <option value="pending">Pendientes</option>
+                    <option value="in-progress">En Proceso</option>
+                    <option value="completed">Completadas</option>
+                </select>
+                <select onchange="filterObservations('priority', this.value)">
+                    <option value="all">Todas las prioridades</option>
+                    <option value="urgent">Urgente</option>
+                    <option value="high">Alta</option>
+                    <option value="medium">Media</option>
+                    <option value="low">Baja</option>
+                </select>
+            </div>
+            
+            <div class="obs-list">
+        `;
+        
+        if (data.length === 0) {
+            html += `<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No hay observaciones</p></div>`;
+        } else {
+            data.sort((a, b) => b.date - a.date).forEach(obs => {
+                const statusClass = obs.status === 'completed' ? 'completed' : obs.status === 'in-progress' ? 'in-progress' : '';
+                html += `
+                    <div class="obs-card ${statusClass}" onclick="viewObservation('${obs.id}')">
+                        <div class="obs-card-top">
+                            <span class="obs-card-type type-${obs.type}">${obs.type}</span>
+                            <span class="obs-card-priority priority-${obs.priority}">${obs.priority}</span>
+                        </div>
+                        <div class="obs-card-title">${obs.title}</div>
+                        <div class="obs-card-desc">${obs.description}</div>
+                        <div class="obs-card-bottom">
+                            <span class="obs-card-user"><i class="fas fa-user"></i> ${obs.reportedBy}</span>
+                            <span class="obs-card-zone"><i class="fas fa-map-marker-alt"></i> ${obs.zone}</span>
+                            <span class="obs-card-date">${formatDate(obs.date)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += `</div>`;
+        main.innerHTML = html;
+    }
+    
+    function searchObservations(query) {
+        const filtered = observations.filter(o => 
+            o.title.toLowerCase().includes(query.toLowerCase()) ||
+            o.description.toLowerCase().includes(query.toLowerCase()) ||
+            o.zone.toLowerCase().includes(query.toLowerCase())
+        );
+        renderObservations(filtered);
+    }
+    
+    function filterObservations(type, value) {
+        let filtered = observations;
+        if (type === 'status' && value !== 'all') {
+            filtered = observations.filter(o => o.status === value);
+        } else if (type === 'priority' && value !== 'all') {
+            filtered = observations.filter(o => o.priority === value);
+        }
+        renderObservations(filtered);
+    }
+    
+    function newObservation() {
+        const modal = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        
+        content.innerHTML = `
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Nueva Observación</h3>
+                <div class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tipo de Observación</label>
+                    <select id="obs-type">
+                        <option value="acto">Acto Inseguro</option>
+                        <option value="condicion">Condición Insegura</option>
+                        <option value="comportamiento">Comportamiento Positivo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Prioridad</label>
+                    <select id="obs-priority">
+                        <option value="urgent">Urgente</option>
+                        <option value="high">Alta</option>
+                        <option value="medium">Media</option>
+                        <option value="low">Baja</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="obs-title" placeholder="Título breve">
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="obs-description" placeholder="Describe la observación"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Zona</label>
+                    <input type="text" id="obs-zone" placeholder="Ubicación">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="saveObservation()"><i class="fas fa-save"></i> Guardar</button>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    }
+    
+    function saveObservation() {
+        const newObs = {
+            type: document.getElementById('obs-type').value,
+            priority: document.getElementById('obs-priority').value,
+            title: document.getElementById('obs-title').value,
+            description: document.getElementById('obs-description').value,
+            zone: document.getElementById('obs-zone').value,
+            reportedBy: currentUser.name,
+            date: new Date(),
+            status: 'pending'
+        };
+        
+        if (!newObs.title || !newObs.description || !newObs.zone) {
+            showToast('Completa todos los campos', 'error');
+            return;
+        }
+        
+        db.collection('observations').add(newObs).then(() => {
+            showToast('Observación guardada');
+            closeModal();
+        });
+    }
+    
+    function viewObservation(id) {
+        const obs = observations.find(o => o.id === id);
+        if (!obs) return;
+        
+        const modal = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        
+        content.innerHTML = `
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> Detalle de Observación</h3>
+                <div class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></div>
+            </div>
+            <div class="modal-body">
+                <div class="detail-section">
+                    <div class="detail-row">
+                        <strong>Tipo:</strong>
+                        <span class="obs-card-type type-${obs.type}">${obs.type}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Prioridad:</strong>
+                        <span class="obs-card-priority priority-${obs.priority}">${obs.priority}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Estado:</strong>
+                        <span>${obs.status}</span>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Información</h4>
+                    <div class="detail-row">
+                        <strong>Título:</strong>
+                        <span>${obs.title}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Descripción:</strong>
+                        <span>${obs.description}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Zona:</strong>
+                        <span>${obs.zone}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Reportado por:</strong>
+                        <span>${obs.reportedBy}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Fecha:</strong>
+                        <span>${formatDate(obs.date)}</span>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    ${obs.status !== 'completed' ? `
+                        <button class="btn btn-danger" onclick="deleteObservation('${obs.id}')"><i class="fas fa-trash"></i> Eliminar</button>
+                        <button class="btn btn-success" onclick="completeObservation('${obs.id}')"><i class="fas fa-check"></i> Completar</button>
+                    ` : `
+                        <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+                    `}
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    }
+    
+    function completeObservation(id) {
+        db.collection('observations').doc(id).update({ status: 'completed' }).then(() => {
+            showToast('Observación completada');
+            closeModal();
+        });
+    }
+    
+    function deleteObservation(id) {
+        if (confirm('¿Eliminar esta observación?')) {
+            db.collection('observations').doc(id).delete().then(() => {
+                showToast('Observación eliminada');
+                closeModal();
+            });
+        }
+    }
+    
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
+    
+    function formatDate(date) {
+        if (!date) return '';
+        const d = date.toDate ? date.toDate() : new Date(date);
+        return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    
+    function showWorkers() {
+        toggleDrawer();
+        document.getElementById('header-title').textContent = 'Trabajadores';
+        
+        const main = document.getElementById('main-content');
+        main.innerHTML = `<div class="empty-state"><i class="fas fa-users"></i><p>Módulo en desarrollo</p></div>`;
+    }
+    
+    function showMyCursos() {
+        toggleDrawer();
+        document.getElementById('header-title').textContent = 'Mis Cursos';
+        renderMyCursos();
+    }
+    
+    function renderMyCursos() {
+        const main = document.getElementById('main-content');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const myCursos = allCursos.filter(c => c.dni === currentUser.dni);
+        
+        let vigentes = 0, porVencer = 0, vencidos = 0;
+        myCursos.forEach(c => {
+            const days = Math.ceil((c.vencDate - today) / (1000 * 60 * 60 * 24));
+            if (days > 90) vigentes++;
+            else if (days > 0) porVencer++;
+            else vencidos++;
+        });
+        
+        let html = `
+            <div class="dashboard-grid">
+                <div class="dash-card success">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="number">${vigentes}</div>
+                    <div class="label">Vigentes</div>
+                </div>
+                <div class="dash-card warning">
+                    <i class="fas fa-clock"></i>
+                    <div class="number">${porVencer}</div>
+                    <div class="label">Por Vencer</div>
+                </div>
+                <div class="dash-card urgent">
+                    <i class="fas fa-times-circle"></i>
+                    <div class="number">${vencidos}</div>
+                    <div class="label">Vencidos</div>
+                </div>
+                <div class="dash-card primary">
+                    <i class="fas fa-graduation-cap"></i>
+                    <div class="number">${myCursos.length}</div>
+                    <div class="label">Total</div>
+                </div>
+            </div>
+        `;
+        
+        if (myCursos.length === 0) {
+            html += `<div class="empty-state"><i class="fas fa-graduation-cap"></i><p>No tienes cursos registrados</p></div>`;
+        } else {
+            html += `<div class="course-grid">`;
+            myCursos.sort((a, b) => a.vencDate - b.vencDate).forEach(c => {
+                const days = Math.ceil((c.vencDate - today) / (1000 * 60 * 60 * 24));
+                let cardClass = '';
+                let daysClass = 'ok';
+                let daysText = `Vence en ${days} días`;
+                
+                if (days <= 0) {
+                    cardClass = 'expired';
+                    daysClass = 'danger';
+                    daysText = days === 0 ? 'Vence HOY' : `Venció hace ${Math.abs(days)} días`;
+                } else if (days <= 90) {
+                    cardClass = 'expiring';
+                    daysClass = 'warning';
+                }
+                
+                html += `
+                    <div class="course-card ${cardClass}">
+                        <h4><i class="fas fa-certificate"></i> ${c.curso}</h4>
+                        <div class="days ${daysClass}">${days > 0 ? days : Math.abs(days)}</div>
+                        <div class="legend">${daysText}</div>
+                        <div style="font-size:12px;color:var(--text-light);margin-top:8px;">${formatDate(c.vencDate)}</div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+        
+        main.innerHTML = html;
+    }
+    
+    window.onload = function() {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        
+        const dniInput = document.getElementById('dni-input');
+        dniInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+        dniInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
+        }
+        
+        firebase.auth().signInAnonymously().catch(e => console.error('Auth:', e));
+        
+        window.addEventListener('online', () => {
+            document.getElementById('offline-banner').classList.remove('show');
+            document.body.classList.remove('offline');
+            showToast('Conexión restaurada');
+        });
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-banner').classList.add('show');
+            document.body.classList.add('offline');
+            showToast('Sin conexión', 'warning');
+        });
+    };
+    </script>
+</body>
+</html>
